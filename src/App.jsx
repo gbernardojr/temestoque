@@ -131,15 +131,10 @@ function SearchRoute({ auth }) {
 
 function DetailsRoute({ auth }) {
   const { id } = useParams()
-  const navigate = useNavigate()
   const userId = auth.session?.user?.id
   const { data, loading, error } = useData(() => api.getListing(id), [id, userId])
   const [contactError, setContactError] = useState('')
   async function contact(listing) {
-    if (!auth.session) {
-      navigate('/entrar', { state: { from: `/sobras/${listing.id}` } })
-      return
-    }
     try {
       setContactError('')
       const number = await api.getContact(listing.id)
