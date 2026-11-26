@@ -86,8 +86,12 @@ export async function getListing(id) {
 
 export async function getOwnListings(userId) {
   const client = ensureSupabase()
-  const rows = await allPages(() => client.from('anuncios').select('*').eq('marcenaria_id', userId).order('created_at', { ascending: false }).order('id', { ascending: false }))
-  return hydrate(rows)
+  const [rows, reservations] = await Promise.all([
+    allPages(() => client.from('anuncios').select('*').eq('marcenaria_id', userId).order('created_at', { ascending: false }).order('id', { ascending: false })),
+    getReservations(),
+  ])
+  const reserved = new Set(reservations.filter((item) => item.vendedor_id === userId).map((item) => item.anuncio_id))
+  return hydrate(rows.map((row) => ({ ...row, reservada_em_carrinho: reserved.has(row.id) })))
 }
 
 export async function getOwnListing(id, userId) {
@@ -108,11 +112,48 @@ export async function getAdminListings() {
   return hydrate(rows)
 }
 
-export async function getContact(id) {
-  const { data, error } = await ensureSupabase().rpc('contato_whatsapp', { p_anuncio_id: id })
+export async function getCommissionRate() {
+  const { data, error } = await ensureSupabase().from('configuracoes_app').select('comissao_percentual').eq('id', true).single()
   if (error) fail(error)
-  if (!data?.[0]?.whatsapp) throw new Error('O contato desta sobra não está disponível.')
-  return data[0].whatsapp
+  return Number(data.comissao_percentual)
+}
+
+export async function addToCart(id) {
+  const { error } = await ensureSupabase().rpc('adicionar_ao_carrinho', { p_anuncio_id: id })
+  if (error) fail(error)
+}
+
+export async function getReservations() {
+  const data = await allPages(() => ensureSupabase().rpc('minhas_reservas'))
+  return data.map((item) => ({
+    ...item,
+    preco_base: item.preco_base == null ? null : Number(item.preco_base),
+    preco_final: item.preco_final == null ? null : Number(item.preco_final),
+    percentual_comissao: Number(item.percentual_comissao),
+    valor_comissao: item.valor_comissao == null ? null : Number(item.valor_comissao),
+    valor_repasse: item.valor_repasse == null ? null : Number(item.valor_repasse),
+  }))
+}
+
+export async function removeFromCart(id) {
+  const { error } = await ensureSupabase().rpc('remover_do_carrinho', { p_reserva_id: id })
+  if (error) fail(error)
+}
+
+export async function setReservationPrice(id, price) {
+  const { error } = await ensureSupabase().rpc('definir_preco_reserva', { p_reserva_id: id, p_preco: price })
+  if (error) fail(error)
+}
+
+export async function getMessages(id) {
+  return allPages(() => ensureSupabase().from('mensagens_negociacao')
+    .select('id,reserva_id,autor_id,conteudo,created_at').eq('reserva_id', id)
+    .order('created_at').order('id'))
+}
+
+export async function sendMessage(id, content) {
+  const { error } = await ensureSupabase().from('mensagens_negociacao').insert({ reserva_id: id, conteudo: content })
+  if (error) fail(error)
 }
 
 export async function changeStatus(id, status) {

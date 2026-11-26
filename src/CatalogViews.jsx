@@ -4,7 +4,7 @@ import {
   ArrowRight,
   ImageOff,
   MapPin,
-  MessageCircle,
+  ShoppingCart,
   PackageOpen,
   Search,
   SlidersHorizontal,
@@ -273,15 +273,15 @@ export function HomePage({ listings, loading, configError, signedIn }) {
         <div className="hero-inner">
           <div className="hero-copy">
             <span className="eyebrow">Conexões locais. Novas possibilidades.</span>
-            <h1 className="hero-title">Tem Estoque<span className="brand-dot">.</span></h1>
+            <h1 className="hero-title">Tem Estoque</h1>
             <p>Encontre sobras de chapas perto de você antes de comprar uma chapa nova.</p>
             <div className="hero-actions">
               {signedIn ? <>
                 <Link className="button primary" to="/buscar">Encontrar sobras <ArrowRight size={18} aria-hidden="true" /></Link>
                 <Link className="button outline" to="/minhas-sobras">Minha conta</Link>
               </> : <>
-                <Link className="button primary" to="/cadastro">Cadastrar minha marcenaria <ArrowRight size={18} aria-hidden="true" /></Link>
-                <Link className="button outline" to="/entrar">Entrar</Link>
+                <Link className="button primary" to="/buscar">Encontrar sobras <ArrowRight size={18} aria-hidden="true" /></Link>
+                <Link className="button outline" to="/cadastro">Criar conta</Link>
               </>}
             </div>
             <p className="hero-note">Bom para a sua marcenaria. Melhor para o planeta.</p>
@@ -480,7 +480,7 @@ function Spec({ label, value }) {
   );
 }
 
-export function DetailsPage({ listing, loading, onContact, currentUserId, configError }) {
+export function DetailsPage({ listing, loading, onReserve, currentUserId, signedIn, reserving, reserveError, configError }) {
   const [activePhoto, setActivePhoto] = useState(0);
   const listingId = listing?.id;
 
@@ -511,7 +511,6 @@ export function DetailsPage({ listing, loading, onContact, currentUserId, config
   const selectedPhoto = photos[selectedIndex];
   const title = displayValue(listing.material, 'Material não informado');
   const ownListing = isOwnListing(listing, currentUserId);
-  const canContact = typeof onContact === 'function';
 
   return (
     <main className="page-container">
@@ -548,7 +547,7 @@ export function DetailsPage({ listing, loading, onContact, currentUserId, config
           <StatusBadge status={listing.status} />
           <h1 id="details-title">{title}</h1>
           <p className="details-price">{formatPrice(listing.preco)}</p>
-          <p className="details-seller">Marcenaria: {displayValue(listing.marcenaria_nome)}</p>
+          <p className="details-seller">Ofertante: {displayValue(listing.marcenaria_nome)}</p>
           <h2>Informações da sobra</h2>
           <dl className="specs-grid">
             <Spec label="Material" value={title} />
@@ -569,15 +568,16 @@ export function DetailsPage({ listing, loading, onContact, currentUserId, config
           </div>
           {ownListing && <div className="notice">Esta sobra é sua.</div>}
           {!ownListing && listing.status !== AVAILABLE && <div className="notice">Esta sobra não está disponível no momento.</div>}
-          {!ownListing && !canContact && <div className="alert info" role="status">O contato está indisponível no momento.</div>}
+          {reserveError && <div className="alert error" role="alert">{reserveError}</div>}
           <button
-            className="button whatsapp"
+            className="button primary"
             type="button"
-            disabled={ownListing || !canContact || listing.status !== AVAILABLE}
-            onClick={() => onContact(listing)}
+            disabled={ownListing || reserving || listing.status !== AVAILABLE}
+            onClick={() => onReserve(listing)}
           >
-            <MessageCircle size={20} aria-hidden="true" /> Falar no WhatsApp
+            <ShoppingCart size={20} aria-hidden="true" /> {reserving ? 'Reservando...' : signedIn ? 'Adicionar ao carrinho' : 'Entrar para adicionar ao carrinho'}
           </button>
+          {!ownListing && <p className="muted">Ao adicionar, a sobra fica reservada para você. Negocie com o ofertante pelo chat no carrinho.</p>}
         </section>
       </div>
     </main>

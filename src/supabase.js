@@ -20,6 +20,14 @@ const errors = {
 export function messageFromError(error) {
   if (!error) return 'Não foi possível concluir a operação. Tente novamente.'
   if (errors[error.code]) return errors[error.code]
+  if (error.code === 'P0001' && [
+    'Esta sobra não está mais disponível.',
+    'Você não pode reservar sua própria sobra.',
+    'Esta sobra está reservada em um carrinho e não pode ser alterada.',
+    'As fotos não podem ser alteradas enquanto a sobra estiver reservada.',
+    'Reserva não encontrada.',
+    'O preço desta reserva já foi definido.',
+  ].includes(error.message)) return error.message
   if (error.message?.includes('Invalid login credentials')) return errors.invalid_credentials
   if (error.message?.includes('Email not confirmed')) return errors.email_not_confirmed
   if (error.message?.includes('User already registered')) return errors.user_already_exists

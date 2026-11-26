@@ -1065,6 +1065,198 @@ textarea.field-input, .field textarea {
   gap: 1rem;
 }
 
+.reservations-page {
+  padding-bottom: 4rem;
+}
+
+.reservations-page > .alert {
+  margin-bottom: 1rem;
+}
+
+.reservations-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.reservation-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.reservation-card-heading h2 {
+  margin: 0.65rem 0 0.35rem;
+  font-size: 1.5rem;
+}
+
+.reservation-card-heading p {
+  margin-bottom: 0;
+}
+
+.reservation-price span, .reservation-details dt {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.reservation-price strong {
+  color: var(--color-forest-deep);
+  font-size: 1.2rem;
+}
+
+.reservation-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+}
+
+.reservation-details div {
+  min-width: 0;
+}
+
+.reservation-details dd {
+  margin: 0.2rem 0 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.reservation-estimates {
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.reservation-estimates h3 {
+  margin-bottom: 0;
+  font-size: 1.1rem;
+}
+
+.reservation-note {
+  color: #75500d;
+  font-size: 0.9rem;
+}
+
+.reservation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.reservation-chat {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.reservation-chat h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.reservation-chat > p, .reservation-chat .alert p {
+  margin-bottom: 0;
+}
+
+.reservation-chat .alert .button {
+  margin-top: 0.75rem;
+}
+
+.chat-messages {
+  display: flex;
+  max-height: 22rem;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-cream);
+  list-style: none;
+}
+
+.chat-message {
+  width: fit-content;
+  max-width: min(100%, 38rem);
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  overflow-wrap: anywhere;
+}
+
+.chat-message.own {
+  align-self: flex-end;
+  background: var(--color-sage-light);
+}
+
+.chat-message-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.chat-message p {
+  margin: 0.35rem 0 0;
+  white-space: pre-wrap;
+}
+
+.chat-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.chat-form .button {
+  justify-self: start;
+}
+
+.cart-summary h2 {
+  margin-bottom: 0.5rem;
+}
+
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.cart-total strong {
+  color: var(--color-forest-deep);
+  font-size: 1.25rem;
+}
+
+.cart-summary > .button {
+  width: 100%;
+}
+
+.cart-summary > .alert {
+  margin-top: 1rem;
+}
+
+@media (min-width: 800px) {
+  .reservations-layout:not(.seller) {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem);
+  }
+}
+
 .manage-card {
   display: grid;
   grid-template-columns: 5.5rem minmax(0, 1fr);

@@ -18,6 +18,20 @@ const MATERIALS = ['MDF', 'MDP', 'Compensado', 'Melamínico', 'OSB', 'Madeira ma
 const FINISHES = ['Branco', 'Cru', 'Preto', 'Madeirado', 'Colorido', 'Outro'];
 const MAX_PHOTOS = 3;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
+const MAX_PRICE_CENTS = 999999999999n;
+
+function priceCalculations(value, rate) {
+  if (value === null || String(value).trim() === '') return null;
+  const price = Number(value);
+  if (!Number.isFinite(rate) || rate < 0 || rate > 100 || !Number.isFinite(price) || price < 0 ||
+      Math.abs(Math.round(price * 100) - price * 100) > 0.000001) return null;
+  const baseCents = BigInt(Math.round(price * 100));
+  const rateBasisPoints = BigInt(Math.round(rate * 100));
+  const finalCents = (baseCents * (10000n + rateBasisPoints) + 5000n) / 10000n;
+  if (finalCents > MAX_PRICE_CENTS) return null;
+  const commissionCents = (finalCents * rateBasisPoints + 5000n) / 10000n;
+  return { finalCents, commissionCents, payoutCents: finalCents - commissionCents };
+}
 
 function errorMessage(error, fallback) {
   return typeof error?.message === 'string' && error.message.trim()
@@ -134,7 +148,8 @@ export function LoginPage({ onLogin }) {
       </section>
       <section className="auth-card" aria-labelledby="login-title">
         <h2 id="login-title">Entrar</h2>
-        <p className="muted">Acesse sua conta de marcenaria.</p>
+        <p className="muted">Acesse sua conta para oferecer ou reservar sobras.</p>
+        {location.state?.reason === 'cart' && <Alert type="info">Entre ou crie uma conta para adicionar esta sobra ao carrinho.</Alert>}
         <Alert>{error}</Alert>
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="field">
@@ -149,7 +164,7 @@ export function LoginPage({ onLogin }) {
             <LogIn size={18} aria-hidden="true" /> {submitting ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
-        <p>Não tem conta? <Link className="text-link" to="/cadastro">Cadastre sua marcenaria</Link></p>
+        <p>Não tem conta? <Link className="text-link" to="/cadastro" state={location.state}>Criar conta</Link></p>
       </section>
     </div>
   );
@@ -157,6 +172,7 @@ export function LoginPage({ onLogin }) {
 
 export function RegisterPage({ onSignup }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm] = useState({ nome: '', email: '', password: '', confirmPassword: '', whatsapp: '', cidade: '', bairro: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -172,7 +188,7 @@ export function RegisterPage({ onSignup }) {
     if (submitting) return;
     setError('');
     if (form.nome.trim().length < 2 || form.nome.trim().length > 120 || form.cidade.trim().length < 2 || form.cidade.trim().length > 100 || !form.bairro.trim() || form.bairro.trim().length > 100) {
-      setError('Confira o nome da marcenaria, a cidade e o bairro.');
+      setError('Confira o nome, a cidade e o bairro.');
       return;
     }
     if (form.password !== form.confirmPassword) {
@@ -198,7 +214,7 @@ export function RegisterPage({ onSignup }) {
         setConfirmationRequired(true);
         setForm((current) => ({ ...current, password: '' }));
       } else {
-        navigate('/minhas-sobras');
+        navigate(location.state?.from || '/minhas-sobras');
       }
     } catch (err) {
       setError(errorMessage(err, 'Não foi possível realizar o cadastro. Tente novamente.'));
@@ -211,25 +227,25 @@ export function RegisterPage({ onSignup }) {
     <div className="auth-layout">
       <section className="auth-side">
         <h1>Tem Estoque</h1>
-        <p>Cadastre sua marcenaria para anunciar suas sobras.</p>
+        <p>Crie sua conta para oferecer e reservar sobras.</p>
       </section>
       <section className="auth-card" aria-labelledby="register-title">
         <h2 id="register-title">Cadastro</h2>
         {confirmationRequired ? (
           <>
             <Alert type="success">Cadastro realizado. Confirme seu e-mail antes de entrar.</Alert>
-            <button className="button primary" type="button" onClick={() => navigate('/entrar')}>
+            <button className="button primary" type="button" onClick={() => navigate('/entrar', { state: location.state })}>
               <LogIn size={18} aria-hidden="true" /> Ir para login
             </button>
           </>
         ) : (
           <>
-            <p className="muted">Informe os dados da sua marcenaria.</p>
+            <p className="muted">Informe seus dados ou os da sua marcenaria.</p>
             <Alert>{error}</Alert>
             <form className="auth-form" onSubmit={handleSubmit}>
               <div className="field">
-                <label className="field-label" htmlFor="register-nome">Nome da marcenaria</label>
-                <input className="field-input" id="register-nome" name="nome" autoComplete="organization" required value={form.nome} onChange={updateField} />
+                <label className="field-label" htmlFor="register-nome">Seu nome ou nome da marcenaria</label>
+                <input className="field-input" id="register-nome" name="nome" autoComplete="name" required value={form.nome} onChange={updateField} />
               </div>
               <div className="field">
                 <label className="field-label" htmlFor="register-email">E-mail</label>
@@ -261,7 +277,7 @@ export function RegisterPage({ onSignup }) {
                 <UserPlus size={18} aria-hidden="true" /> {submitting ? 'Cadastrando...' : 'Criar conta'}
               </button>
             </form>
-            <p>Já tem conta? <Link className="text-link" to="/entrar">Entrar</Link></p>
+            <p>Já tem conta? <Link className="text-link" to="/entrar" state={location.state}>Entrar</Link></p>
           </>
         )}
       </section>
@@ -340,19 +356,23 @@ export function MyListingsPage({ listings, loading, onStatusChange, onDelete }) 
                     <ListingImage listing={listing} />
                     <div className="manage-content">
                       <ListingDetails listing={listing} />
-                      <div className="manage-actions">
-                        <div className="field">
-                          <label className="field-label" htmlFor={`status-${listing.id}`}>Alterar status</label>
-                          <select className="field-input" id={`status-${listing.id}`} aria-label={`Alterar status do anúncio de ${listing.material || 'material'}`} value={status} disabled={Boolean(pending)} onChange={(event) => changeStatus(listing, event.target.value)}>
-                            {!hasKnownStatus && <option value={status}>{status || 'Selecione um status'}</option>}
-                            {STATUSES.map((option) => <option key={option} value={option}>{option}</option>)}
-                          </select>
+                      {listing.reservada_em_carrinho ? (
+                        <div className="manage-actions"><span className="notice">Reservada no carrinho de um interessado.</span><Link className="button outline small" to="/negociacoes">Ver negociação</Link></div>
+                      ) : (
+                        <div className="manage-actions">
+                          <div className="field">
+                            <label className="field-label" htmlFor={`status-${listing.id}`}>Alterar status</label>
+                            <select className="field-input" id={`status-${listing.id}`} aria-label={`Alterar status do anúncio de ${listing.material || 'material'}`} value={status} disabled={Boolean(pending)} onChange={(event) => changeStatus(listing, event.target.value)}>
+                              {!hasKnownStatus && <option value={status}>{status || 'Selecione um status'}</option>}
+                              {STATUSES.map((option) => <option key={option} value={option}>{option}</option>)}
+                            </select>
+                          </div>
+                          <Link className="button outline small" to={`/sobras/${encodeURIComponent(listing.id)}/editar`} aria-label={`Editar anúncio de ${listing.material || 'material'}`}><Pencil size={16} aria-hidden="true" /> Editar</Link>
+                          <button className="button danger small" type="button" disabled={Boolean(pending)} onClick={() => deleteListing(listing)} aria-label={`Excluir anúncio de ${listing.material || 'material'}`}>
+                            <Trash2 size={16} aria-hidden="true" /> {pending?.id === listing.id && pending.type === 'delete' ? 'Excluindo...' : 'Excluir'}
+                          </button>
                         </div>
-                        <Link className="button outline small" to={`/sobras/${encodeURIComponent(listing.id)}/editar`} aria-label={`Editar anúncio de ${listing.material || 'material'}`}><Pencil size={16} aria-hidden="true" /> Editar</Link>
-                        <button className="button danger small" type="button" disabled={Boolean(pending)} onClick={() => deleteListing(listing)} aria-label={`Excluir anúncio de ${listing.material || 'material'}`}>
-                          <Trash2 size={16} aria-hidden="true" /> {pending?.id === listing.id && pending.type === 'delete' ? 'Excluindo...' : 'Excluir'}
-                        </button>
-                      </div>
+                      )}
                     </div>
                   </article>
                 );
@@ -381,7 +401,7 @@ function makeListingForm(initial, profile, isEdit) {
   };
 }
 
-export function ListingFormPage({ initial, profile, onSave, isEdit }) {
+export function ListingFormPage({ initial, profile, onSave, isEdit, commissionRate }) {
   const navigate = useNavigate();
   const [form, setForm] = useState(() => makeListingForm(initial, profile, isEdit));
   const [negotiable, setNegotiable] = useState(initial?.preco == null);
@@ -391,6 +411,10 @@ export function ListingFormPage({ initial, profile, onSave, isEdit }) {
   const [removedPaths, setRemovedPaths] = useState([]);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const price = negotiable ? null : Number(form.preco);
+  const samePrice = isEdit && (negotiable ? initial?.preco == null : initial?.preco != null && price === Number(initial.preco));
+  const rate = samePrice ? Number(initial.comissao_percentual) : Number(commissionRate);
+  const calculations = negotiable ? null : priceCalculations(form.preco, rate);
 
   useEffect(() => {
     setForm(makeListingForm(initial, profile, isEdit));
@@ -482,8 +506,7 @@ export function ListingFormPage({ initial, profile, onSave, isEdit }) {
         return;
       }
     }
-    const price = negotiable ? null : Number(form.preco);
-    if (!negotiable && (String(form.preco).trim() === '' || !Number.isFinite(price) || price < 0 || price > 9999999999.99 || Math.abs(Math.round(price * 100) - price * 100) > 0.000001)) {
+    if (!negotiable && !calculations) {
       setError('Informe um preço válido com até duas casas decimais.');
       return;
     }
@@ -573,9 +596,12 @@ export function ListingFormPage({ initial, profile, onSave, isEdit }) {
               <input className="field-input" id="listing-quantidade" name="quantidade" type="number" min="1" step="1" required value={form.quantidade} onChange={updateField} />
             </div>
             <div className="field">
-              <label className="field-label" htmlFor="listing-preco">Preço (R$)</label>
+              <label className="field-label" htmlFor="listing-preco">Preço da sobra (R$)</label>
               <input className="field-input" id="listing-preco" name="preco" type="number" min="0" step="0.01" disabled={negotiable} value={form.preco} onChange={updateField} />
               <label><input type="checkbox" checked={negotiable} onChange={(event) => setNegotiable(event.target.checked)} /> Valor a combinar</label>
+              <small className="muted">A comissão de {rate.toLocaleString('pt-BR')}% é acrescida ao preço e descontada do valor final para calcular o repasse.</small>
+              {calculations && <small className="muted">Preço ao comprador: <strong>{formatPrice(Number(calculations.finalCents) / 100)}</strong> · Comissão: {formatPrice(Number(calculations.commissionCents) / 100)} · Repasse estimado: <strong>{formatPrice(Number(calculations.payoutCents) / 100)}</strong></small>}
+              {negotiable && <small className="muted">O valor poderá ser definido na negociação. O frete é combinado separadamente.</small>}
             </div>
             <div className="field">
               <label className="field-label" htmlFor="listing-cidade">Cidade</label>
